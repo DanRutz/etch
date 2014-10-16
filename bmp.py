@@ -80,7 +80,10 @@ def get_bmp(nam):
         btmp_headr = unpack_header(head_bytes, BITMAP_INFO_HEADER)
         junk_bytes = f.read(file_headr['offset'] - 54)
         data_bytes = f.read()
-    logging.debug('Main: Data length: %d' % len(data_bytes))
+    assert len(data_bytes) == btmp_headr['imgsiz']
+    logging.debug('Assert bytes of data equals image size: %d == %d is %s' % (
+            len(data_bytes),   btmp_headr['imgsiz'],
+            len(data_bytes) == btmp_headr['imgsiz']))
     return file_headr, btmp_headr, junk_bytes, data_bytes
 
 def get_dat(file_headr, btmp_headr, junk_bytes, data_bytes):
