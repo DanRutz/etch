@@ -76,6 +76,24 @@ def unpack_header(data, structure):
 
     return head
         
+def unpack_bitmap(bmdata, info_headr):
+    char_rows = []
+    rowsiz = ((info_headr['bperpx'] * info_headr['widpix'] + 31) / 32) * 4
+    logging.debug('Row size in bytes: %d' % rowsiz)
+    rwords = rowsiz / 4
+
+    for y in xrange(info_headr['hgtpix']):
+        y_offset = y * rowsiz
+        row = ''
+        for x in xrange(rwords):
+            offset = x * 4 + y_offset
+            item   = bmdata[offset: offset + 4]
+            word   = '{0:b}'.format(struct.unpack('>L', item)[0]) # big-endian
+            row   += '0' * (32 - len(word)) + word
+        char_rows.append(row[: info_headr['widpix']]) # drop any padding pixels
+
+    return char_rows
+
 def get_bmp(nam):
     logging.debug('Get bitmap file: %s' % nam)
 
@@ -93,26 +111,13 @@ def get_bmp(nam):
     byte_assert('data equals image'  , lambda a, b: a == b, '==',
             len(bmdata), info_headr['imgsiz'])
 
-    rowsiz = ((info_headr['bperpx'] * info_headr['widpix'] + 31) / 32) * 4
-    logging.debug('Row size in bytes: %d' % rowsiz)
+    return unpack_bitmap(bmdata, info_headr)
 
-    return bmdata, rowsiz, info_headr['widpix'], info_headr['hgtpix']
-
-def get_dat(bmdata, rowsiz, widpix, hgtpix):
+def get_dat(bmdata):
     data_lines = []
-    rwords = rowsiz / 4
-
-    for y in xrange(hgtpix):
-        y_offset = y * rowsiz
-        bina = ''
-        for x in xrange(rwords):
-            offset = x * 4 + y_offset
-            item   = bmdata[offset: offset + 4]
-            word   = '{0:b}'.format(struct.unpack('>L', item)[0]) # big-endian
-            bina  += '0' * (32 - len(word)) + word
-        bina = bina[: widpix] # drop any padding pixels
+    for y in xrange(len(bmdata)):
         cnts, found, look_for = [], 0, '0'
-        for char in bina:
+        for char in bmdata[y]:
             if char == look_for:
                 found += 1
             else:

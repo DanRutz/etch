@@ -56,7 +56,7 @@ def main():
     ers = 0
 
     raw = bmp.get_bmp(TRY)
-    dat = bmp.get_dat(*raw)
+    dat = bmp.get_dat(raw)
     out = draw_it(dat)
     # turtle_example()
     # turtle_try(bmp1)
