@@ -11,7 +11,9 @@ class BitmapFileError(Exception):
 
 # http://en.wikipedia.org/wiki/BMP_file_format All of the integer values are
 # stored in little-endian format (i.e. least-significant byte first).
-BITMAP_FILE_HEADER = {
+FILE_H_SIZE = 14
+FILE_HEADER= {
+        'offset': 0,
         'inputs': { # Offset, Size, Purpose
             'header': (  0, 2, 'the header field used to identify the BMP & DIB file is 0x42 0x4D in hexadecimal, same as BM in ASCII'),
             'filsiz': (  2, 4, 'the size of the BMP file in bytes'),
@@ -25,7 +27,9 @@ BITMAP_FILE_HEADER = {
             )
         }
     }
-BITMAP_INFO_HEADER = {
+# This is kind of messed up. It currently only supports BITMAPINFOHEADER BMPs.
+INFO_HEADER = {
+        'offset': 0 - FILE_H_SIZE,
         'inputs': { # Offset, Size, Purpose
             'hedsiz': ( 14, 4, 'the size of this header (40 bytes)'),
             'widpix': ( 18, 4, 'the bitmap width in pixels (signed integer)'),
@@ -56,12 +60,11 @@ def unpack_header(data, structure):
     head = {}
 
     for k, v in structure['inputs'].iteritems():
-        padd = '\x00\x00' if v[1] == 2 else ''
-
-        if k in ('header',):
-            head[k] =                     data[v[0]: v[0] + v[1]]
-        else:
-            head[k] = struct.unpack('<L', data[v[0]: v[0] + v[1]] + padd)[0]
+        padding = '\x00\x00' if v[1] == 2 else ''
+        offset  = v[0] + structure['offset']
+        item    = data[offset: offset + v[1]]
+        head[k] = item if k in ('header',) else \
+                struct.unpack('<L', item + padding)[0]
 
         logging.debug('Unpack headers: %s: %8s: %s' % (k, head[k], v[2]))
 
@@ -75,24 +78,26 @@ def unpack_header(data, structure):
 def get_bmp(nam):
     logging.debug('Get bitmap file: %s' % nam)
     with open(nam, 'rb') as f:
-        head_bytes = f.read(54)
-        file_headr = unpack_header(head_bytes, BITMAP_FILE_HEADER)
-        btmp_headr = unpack_header(head_bytes, BITMAP_INFO_HEADER)
-        junk_bytes = f.read(file_headr['offset'] - 54)
+        file_headr = unpack_header(f.read(FILE_H_SIZE), FILE_HEADER)
+        info_h_size = file_headr['offset'] - FILE_H_SIZE
+        info_headr = unpack_header(f.read(info_h_size), INFO_HEADER)
         data_bytes = f.read()
-    assert len(data_bytes) == btmp_headr['imgsiz']
-    logging.debug('Assert bytes of data equals image size: %d == %d is %s' % (
-            len(data_bytes),   btmp_headr['imgsiz'],
-            len(data_bytes) == btmp_headr['imgsiz']))
-    return file_headr, btmp_headr, junk_bytes, data_bytes
-
-def get_dat(file_headr, btmp_headr, junk_bytes, data_bytes):
-    data_lines = []
-    rwsz_bytes = ((btmp_headr['bperpx'] * btmp_headr['widpix'] + 31) / 32) * 4
+    def byte_assert(msg, comp, func, a, b):
+        logging.debug('Assert bytes of %s size specified: %d %s %d is %s'
+                % (msg, a, comp, b, func(a,b)))
+    byte_assert('info equals/exceeds', '>=', lambda a, b: a >= b,
+            info_h_size    , info_headr['hedsiz'])
+    byte_assert('data equals image'  , '==', lambda a, b: a == b,
+            len(data_bytes), info_headr['imgsiz'])
+    rwsz_bytes = ((info_headr['bperpx'] * info_headr['widpix'] + 31) / 32) * 4
     logging.debug('Row size in bytes: %d' % rwsz_bytes)
+    return data_bytes, rwsz_bytes, info_headr['widpix'], info_headr['hgtpix']
+
+def get_dat(data_bytes, rwsz_bytes, width, height):
+    data_lines = []
     rwsz_words = rwsz_bytes / 4
 
-    for y in xrange(btmp_headr['hgtpix']):
+    for y in xrange(height):
         y_offset = y * rwsz_bytes 
         line = data_bytes[y_offset: y_offset + rwsz_bytes]
         bina = ''
@@ -102,7 +107,7 @@ def get_dat(file_headr, btmp_headr, junk_bytes, data_bytes):
             word = '{0:b}'.format(item)
             word = '0' * (32 - len(word)) + word
             bina += word
-        bina = bina[0: btmp_headr['widpix']] # drop any padding pixels
+        bina = bina[0: width] # drop any padding pixels
         cnts, found, look_for = [], 0, '0'
         for char in bina:
             if char == look_for:
