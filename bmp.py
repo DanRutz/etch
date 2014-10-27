@@ -100,19 +100,17 @@ def get_bmp(nam):
 
 def get_dat(bmdata, rowsiz, widpix, hgtpix):
     data_lines = []
-    rwsz_words = rowsiz / 4
+    rwords = rowsiz / 4
 
     for y in xrange(hgtpix):
         y_offset = y * rowsiz
-        line = bmdata[y_offset: y_offset + rowsiz]
         bina = ''
-        for x in xrange(rwsz_words):
-            x_offset = x * 4
-            item = struct.unpack('>L', line[x_offset: x_offset + 4])[0] # big-endian
-            word = '{0:b}'.format(item)
-            word = '0' * (32 - len(word)) + word
-            bina += word
-        bina = bina[0: widpix] # drop any padding pixels
+        for x in xrange(rwords):
+            offset = x * 4 + y_offset
+            item   = bmdata[offset: offset + 4]
+            word   = '{0:b}'.format(struct.unpack('>L', item)[0]) # big-endian
+            bina  += '0' * (32 - len(word)) + word
+        bina = bina[: widpix] # drop any padding pixels
         cnts, found, look_for = [], 0, '0'
         for char in bina:
             if char == look_for:
