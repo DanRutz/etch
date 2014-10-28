@@ -76,13 +76,14 @@ def unpack_header(data, structure):
 
     return head
         
-def unpack_bitmap(bmdata, info_headr):
+def unpack_bitmap(bmdata, bperpx, hgtpix, widpix):
     char_rows = []
-    rowsiz = ((info_headr['bperpx'] * info_headr['widpix'] + 31) / 32) * 4
+    # This needs to be floor division. It may not work in future as is.
+    rowsiz = ((bperpx * widpix + 31) / 32) * 4
     logging.debug('Row size in bytes: %d' % rowsiz)
     rwords = rowsiz / 4
 
-    for y in xrange(info_headr['hgtpix']):
+    for y in xrange(hgtpix):
         y_offset = y * rowsiz
         row = ''
         for x in xrange(rwords):
@@ -90,7 +91,7 @@ def unpack_bitmap(bmdata, info_headr):
             item   = bmdata[offset: offset + 4]
             word   = '{0:b}'.format(struct.unpack('>L', item)[0]) # big-endian
             row   += '0' * (32 - len(word)) + word
-        char_rows.append(row[: info_headr['widpix']]) # drop any padding pixels
+        char_rows.append(row[: widpix]) # drop any padding pixels
 
     return char_rows
 
@@ -111,7 +112,9 @@ def get_bmp(nam):
     byte_assert('data equals image'  , lambda a, b: a == b, '==',
             len(bmdata), info_headr['imgsiz'])
 
-    return unpack_bitmap(bmdata, info_headr)
+    return unpack_bitmap(bmdata, info_headr['bperpx']
+                               , info_headr['hgtpix']
+                               , info_headr['widpix'])
 
 def get_dat(bmdata):
     data_lines = []
