@@ -13,6 +13,50 @@ import bmp as bmp
 
 TRY = 'Heisenberg-Weeds-and-Breaking-Bad.Monochrome.bmp'
 
+class Pen(object):
+    DNLT, UPRT = False, True
+    RT, UP, LT, DN = 0, 1, 2, 3
+
+
+    def __init__(self):
+        self.h = ed.easydriver(18, .0001, 23, 4, 17, 27)
+        self.v = ed.easydriver(24, .0001, 25, 9, 14, 15)
+        self.h.set_full_step()
+        self.v.set_full_step()
+        self.h.set_direction(RT)
+        self.v.set_direction(UP)
+        self.direction = RT
+
+    def hideturtle(self):
+        pass
+
+    def tracer(self, *args):
+        pass
+
+    def speed(self, *args):
+        pass
+
+    def fd(self, pix):
+        axis = (           self.h if self.direction in (RT, LT) else
+                           self.v)
+        axis.set_direction(DNLT   if self.direction in (DN, LT) else
+                           UPRT  )
+        for i in range(10 * pix):
+            axis.step()
+
+    def bk(self, pix):
+        self.direction = (self.direction + 2) % 4
+        self.fd(pix)
+        self.direction = (self.direction + 2) % 4
+
+    def rt(self, *args):
+        self.direction = (self.direction + 3) % 4
+
+    def lt(self, *args):
+        self.direction = (self.direction + 1) % 4
+
+    # Liiiindsayyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+
 def draw_it(data_lines):
 
     t = turtle.Pen()
