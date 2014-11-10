@@ -8,33 +8,34 @@ import struct
 import sys
 import time
 import turtle
+import easydriver as ed
 
 import bmp as bmp
 
 TRY = 'Heisenberg-Weeds-and-Breaking-Bad.Monochrome.bmp'
 
-class Pen(object):
-    DNLT, UPRT = False, True
-    RT, UP, LT, DN = 0, 1, 2, 3
+DNLT, UPRT = False, True
+RT, UP, LT, DN = 0, 1, 2, 3
 
+class Pen(object):
 
     def __init__(self):
-        self.h = ed.easydriver(18, .0001, 23, 4, 17, 27)
-        self.v = ed.easydriver(24, .0001, 25, 9, 14, 15)
+        self.h = ed.easydriver(24, .0001, 25, 9, 14, 15)
+        self.v = ed.easydriver(18, .0001, 23, 4, 17, 27)
         self.h.set_full_step()
         self.v.set_full_step()
-        self.h.set_direction(RT)
-        self.v.set_direction(UP)
+        self.h.set_direction(UPRT)
+        self.v.set_direction(UPRT)
         self.direction = RT
 
     def hideturtle(self):
         pass
 
-    def tracer(self, *args):
+    def tracer(self, **kwargs):
         pass
 
     def speed(self, *args):
-        pass
+        return 0
 
     def fd(self, pix):
         axis = (           self.h if self.direction in (RT, LT) else
@@ -59,7 +60,8 @@ class Pen(object):
 
 def draw_it(data_lines):
 
-    t = turtle.Pen()
+    # t = turtle.Pen()
+    t = Pen()
     t.hideturtle()
     t.tracer(delay=1000)
     t.speed(0)
@@ -77,9 +79,9 @@ def draw_it(data_lines):
                 for pixel in range(segment):
                     t.fd(  1)
                     t.lt( 90)
-                    t.fd(  1)
-                    t.bk(  2)
-                    t.fd(  1)
+                    t.fd(  10)
+                    t.bk(  20)
+                    t.fd(  10)
                     t.rt( 90)
             else:
                 t.fd(segment)
