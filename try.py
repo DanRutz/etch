@@ -60,8 +60,12 @@ class Pen(object):
 
 def draw_it(data_lines):
 
-    # t = turtle.Pen()
-    t = Pen()
+    if False:
+        t = turtle.Pen()
+        h_scale, v_scale =  0, 1
+    else:
+        t = Pen()
+        h_scale, v_scale = 12, 8
     t.hideturtle()
     t.tracer(delay=1000)
     t.speed(0)
@@ -72,6 +76,7 @@ def draw_it(data_lines):
     frwd = 1 # Start with going right (-1 for left)
 
     for y in xrange(2, len(data_lines), 3):
+        t.fd(h_scale)
         draw = 0 # Start with black
         cnts = data_lines[y]
         for segment in cnts if frwd else reversed(cnts):
@@ -79,9 +84,9 @@ def draw_it(data_lines):
                 for pixel in range(segment):
                     t.fd(  1)
                     t.lt( 90)
-                    t.fd(  10)
-                    t.bk(  20)
-                    t.fd(  10)
+                    t.fd(  1 * v_scale)
+                    t.bk(  2 * v_scale)
+                    t.fd(  1 * v_scale)
                     t.rt( 90)
             else:
                 t.fd(segment)
